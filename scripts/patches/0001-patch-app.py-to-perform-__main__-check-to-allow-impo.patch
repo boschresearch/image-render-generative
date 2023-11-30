@@ -1,0 +1,172 @@
+From 4b38ae7593782446b398a32644655f2bdb03ec0d Mon Sep 17 00:00:00 2001
+From: "Jochen Kall (CR/ADI2.1)" <jochen.kall@de.bosch.com>
+Date: Fri, 30 Jun 2023 11:26:42 +0200
+Subject: [PATCH 1/2] patch app.py to perform __main__ check to allow importing
+ from it ...
+
+---
+ app.py | 151 +++++++++++++++++++++++++++++----------------------------
+ 1 file changed, 76 insertions(+), 75 deletions(-)
+
+diff --git a/app.py b/app.py
+index 84be893..22c1d61 100644
+--- a/app.py
++++ b/app.py
+@@ -423,78 +423,79 @@ def interface():
+ # Interface #
+ #############
+ 
+-css = """
+-    #customized_imbox {
+-        min-height: 450px;
+-    }
+-    #customized_imbox>div[data-testid="image"] {
+-        min-height: 450px;
+-    }
+-    #customized_imbox>div[data-testid="image"]>div {
+-        min-height: 450px;
+-    }
+-    #customized_imbox>div[data-testid="image"]>iframe {
+-        min-height: 450px;
+-    }
+-    #customized_imbox>div.unpadded_box {
+-        min-height: 450px;
+-    }
+-    #myinst {
+-        font-size: 0.8rem; 
+-        margin: 0rem;
+-        color: #6B7280;
+-    }
+-    #maskinst {
+-        text-align: justify;
+-        min-width: 1200px;
+-    }
+-    #maskinst>img {
+-        min-width:399px;
+-        max-width:450px;
+-        vertical-align: top;
+-        display: inline-block;
+-    }
+-    #maskinst:after {
+-        content: "";
+-        width: 100%;
+-        display: inline-block;
+-    }
+-"""
+-
+-if True:
+-    with gr.Blocks(css=css) as demo:
+-        gr.HTML(
+-            """
+-            <div style="text-align: center; max-width: 1200px; margin: 20px auto;">
+-            <h1 style="font-weight: 900; font-size: 3rem; margin: 0rem">
+-                Prompt-Free Diffusion
+-            </h1>
+-            <p style="font-size: 1rem; margin: 0rem">
+-                Xingqian Xu<sup>1,6</sup>, Jiayi Guo<sup>1,2</sup>, Zhangyang Wang<sup>3,6</sup>, Gao Huang<sup>2</sup>, Irfan Essa<sup>4,5</sup>, and Humphrey Shi<sup>1,6</sup>
+-            </p>
+-            <p style="font-size: 0.8rem; margin: 0rem; line-height: 1em">
+-                <sup>1</sup>SHI Labs @ UIUC & Oregon, <sup>2</sup>Tsinghua University, <sup>3</sup>UT Austin, <sup>4</sup>Georgia Tech, <sup>5</sup>Google Research, <sup>6</sup>Picsart AI Research (PAIR)
+-            </p>
+-            <p style="font-size: 0.9rem; margin: 0rem; line-height: 1.2em; margin-top:1em">
+-                The performance of Text2Image is largely dependent on text prompts. 
+-                In Prompt-Free Diffusion, no prompt is needed, just a reference images! 
+-                At the core of Prompt-Free Diffusion is an image-only semantic context encoder (SeeCoder). 
+-                SeeCoder is reusable to most CLIP-based T2I models: just drop in and replace CLIP, then you will create your own prompt-free diffusion.
+-                <a href="https://github.com/SHI-Labs/Prompt-Free-Diffusion">[Github]</a> <a href="https://arxiv.org/abs/2305.16223">[arXiv]</a>
+-            </p>
+-            </div>
+-            """)
+-
+-        interface()
+-
+-        # gr.HTML(
+-        #     """
+-        #     <div style="text-align: justify; max-width: 1200px; margin: 20px auto;">
+-        #     <h3 style="font-weight: 450; font-size: 0.8rem; margin: 0rem">
+-        #     <b>Version</b>: {}
+-        #     </h3>
+-        #     </div>
+-        #     """.format(' '+str(pfd_inference.pretrained)))
+-
+-    demo.launch(server_name="0.0.0.0", server_port=11234)
+-    # demo.launch()
++if __name__ == "__main__":
++    css = """
++        #customized_imbox {
++            min-height: 450px;
++        }
++        #customized_imbox>div[data-testid="image"] {
++            min-height: 450px;
++        }
++        #customized_imbox>div[data-testid="image"]>div {
++            min-height: 450px;
++        }
++        #customized_imbox>div[data-testid="image"]>iframe {
++            min-height: 450px;
++        }
++        #customized_imbox>div.unpadded_box {
++            min-height: 450px;
++        }
++        #myinst {
++            font-size: 0.8rem; 
++            margin: 0rem;
++            color: #6B7280;
++        }
++        #maskinst {
++            text-align: justify;
++            min-width: 1200px;
++        }
++        #maskinst>img {
++            min-width:399px;
++            max-width:450px;
++            vertical-align: top;
++            display: inline-block;
++        }
++        #maskinst:after {
++            content: "";
++            width: 100%;
++            display: inline-block;
++        }
++    """
++
++    if True:
++        with gr.Blocks(css=css) as demo:
++            gr.HTML(
++                """
++                <div style="text-align: center; max-width: 1200px; margin: 20px auto;">
++                <h1 style="font-weight: 900; font-size: 3rem; margin: 0rem">
++                    Prompt-Free Diffusion
++                </h1>
++                <p style="font-size: 1rem; margin: 0rem">
++                    Xingqian Xu<sup>1,6</sup>, Jiayi Guo<sup>1,2</sup>, Zhangyang Wang<sup>3,6</sup>, Gao Huang<sup>2</sup>, Irfan Essa<sup>4,5</sup>, and Humphrey Shi<sup>1,6</sup>
++                </p>
++                <p style="font-size: 0.8rem; margin: 0rem; line-height: 1em">
++                    <sup>1</sup>SHI Labs @ UIUC & Oregon, <sup>2</sup>Tsinghua University, <sup>3</sup>UT Austin, <sup>4</sup>Georgia Tech, <sup>5</sup>Google Research, <sup>6</sup>Picsart AI Research (PAIR)
++                </p>
++                <p style="font-size: 0.9rem; margin: 0rem; line-height: 1.2em; margin-top:1em">
++                    The performance of Text2Image is largely dependent on text prompts. 
++                    In Prompt-Free Diffusion, no prompt is needed, just a reference images! 
++                    At the core of Prompt-Free Diffusion is an image-only semantic context encoder (SeeCoder). 
++                    SeeCoder is reusable to most CLIP-based T2I models: just drop in and replace CLIP, then you will create your own prompt-free diffusion.
++                    <a href="https://github.com/SHI-Labs/Prompt-Free-Diffusion">[Github]</a> <a href="https://arxiv.org/abs/2305.16223">[arXiv]</a>
++                </p>
++                </div>
++                """)
++
++            interface()
++
++            # gr.HTML(
++            #     """
++            #     <div style="text-align: justify; max-width: 1200px; margin: 20px auto;">
++            #     <h3 style="font-weight: 450; font-size: 0.8rem; margin: 0rem">
++            #     <b>Version</b>: {}
++            #     </h3>
++            #     </div>
++            #     """.format(' '+str(pfd_inference.pretrained)))
++
++        demo.launch(server_name="0.0.0.0", server_port=11234)
++        # demo.launch()
+-- 
+2.25.1
+

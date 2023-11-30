@@ -1,0 +1,378 @@
+From 08b9f91c07f421d1dc17b3fda1abd35565dc77cf Mon Sep 17 00:00:00 2001
+From: "Jochen Kall (CR/ADI2.1)" <jochen.kall@de.bosch.com>
+Date: Wed, 5 Jul 2023 15:21:43 +0200
+Subject: [PATCH 2/2] Enable execution from any folder via rootfolder argument
+ as environment variable
+
+---
+ app.py            | 170 +++++++++++++++++++++++++---------------------
+ lib/cfg_helper.py |  43 ++++++------
+ 2 files changed, 116 insertions(+), 97 deletions(-)
+
+diff --git a/app.py b/app.py
+index 22c1d61..487b387 100644
+--- a/app.py
++++ b/app.py
+@@ -20,6 +20,9 @@ from lib.model_zoo import get_model
+ from collections import OrderedDict
+ from lib.model_zoo.ddim import DDIMSampler
+ 
++import os.path as path
++import os
++
+ n_sample_image = 1
+ 
+ controlnet_path = OrderedDict([
+@@ -100,14 +103,16 @@ class prompt_free_diffusion(object):
+                  fp16=False, 
+                  tag_ctx=None,
+                  tag_diffuser=None,
+-                 tag_ctl=None,):
++                 tag_ctl=None,
++                 rootpath="",
++                 ):
+ 
+         self.tag_ctx = tag_ctx
+         self.tag_diffuser = tag_diffuser
+         self.tag_ctl = tag_ctl
+         self.strict_sd = True
+ 
+-        cfgm = model_cfg_bank()('pfd_seecoder_with_controlnet')
++        cfgm = model_cfg_bank(rootpath=rootpath)('pfd_seecoder_with_controlnet')
+         self.net = get_model()(cfgm)
+         
+         self.action_load_ctx(tag_ctx)
+@@ -134,8 +139,11 @@ class prompt_free_diffusion(object):
+         self.ddim_eta = 0.0
+         self.image_latent_dim = 4
+ 
++
+     def load_ctx(self, pretrained):
+-        sd = load_sd_from_file(pretrained)
++        pfd_root=os.getenv('pfd_root')
++        pretrained_path = path.join(pfd_root, pretrained) 
++        sd = load_sd_from_file(pretrained_path)
+         sd_extra = [(ki, vi) for ki, vi in self.net.state_dict().items() \
+             if ki.find('ctx.')!=0]
+         sd.update(OrderedDict(sd_extra))
+@@ -182,15 +190,19 @@ class prompt_free_diffusion(object):
+ 
+     def action_load_diffuser(self, tag):
+         pretrained = diffuser_path[tag]
++        pfd_root=os.getenv('pfd_root')
++        pretrained_path = path.join(pfd_root,pretrained)
+         if pretrained is not None:
+-            self.load_diffuser(pretrained)
++            self.load_diffuser(pretrained_path)
+         self.tag_diffuser = tag
+         return tag
+ 
+     def action_load_ctl(self, tag):
+         pretrained = controlnet_path[tag][1]
++        pfd_root=os.getenv('pfd_root')
++        pretrained_path = path.join(pfd_root,pretrained)
+         if pretrained is not None:
+-            self.load_ctl(pretrained)
++            self.load_ctl(pretrained_path)
+         self.tag_ctl = tag
+         return tag
+ 
+@@ -274,14 +286,12 @@ class prompt_free_diffusion(object):
+         imout = [tvtrans.ToPILImage()(i) for i in imout]
+         return imout + ccout
+ 
+-pfd_inference = prompt_free_diffusion(
+-    fp16=True, tag_ctx = 'SeeCoder', tag_diffuser = 'Deliberate-v2.0', tag_ctl = 'canny',)
++
+ 
+ #################
+ # sub interface #
+ #################
+ 
+-cache_examples = True
+ 
+ def get_example():
+     case = [
+@@ -354,76 +364,84 @@ def get_example():
+     ]
+     return case
+ 
+-def interface():
+-    with gr.Row():
+-        with gr.Column():
+-            img_input = gr.Image(label='Image Input', type='pil', elem_id='customized_imbox')
+-            with gr.Row():
+-                out_width  = gr.Slider(label="Width" , minimum=512, maximum=1536, value=512, step=64, visible=True)
+-                out_height = gr.Slider(label="Height", minimum=512, maximum=1536, value=512, step=64, visible=True)
+-            with gr.Row():
+-                scl_lvl = gr.Slider(label="CFGScale", minimum=0, maximum=10, value=2, step=0.01, visible=True)
+-                seed = gr.Number(20, label="Seed", precision=0)
+-            with gr.Row():
+-                tag_ctx = gr.Dropdown(label='Context Encoder', choices=[pi for pi in ctxencoder_path.keys()], value='SeeCoder')
+-                tag_diffuser = gr.Dropdown(label='Diffuser', choices=[pi for pi in diffuser_path.keys()], value='Deliberate-v2.0')
+-            button = gr.Button("Run")
+-        with gr.Column():
+-            ctl_input = gr.Image(label='Control Input', type='pil', elem_id='customized_imbox')
+-            do_preprocess = gr.Checkbox(label='Preprocess', value=False)
+-            with gr.Row():
+-                ctl_method = gr.Dropdown(label='Preprocess Type', choices=preprocess_method, value='canny')
+-                tag_ctl    = gr.Dropdown(label='ControlNet',      choices=[pi for pi in controlnet_path.keys()], value='canny')
+-        with gr.Column():
+-            img_output = gr.Gallery(label="Image Result", elem_id='customized_imbox').style(grid=n_sample_image+1)
+-
+-    tag_ctl.change(
+-        pfd_inference.action_autoset_method,
+-        inputs = [tag_ctl],
+-        outputs = [ctl_method],)
+-
+-    ctl_input.change(
+-        pfd_inference.action_autoset_hw,
+-        inputs = [ctl_input],
+-        outputs = [out_height, out_width],)
+-
+-    # tag_ctx.change(
+-    #     pfd_inference.action_load_ctx,
+-    #     inputs = [tag_ctx],
+-    #     outputs = [tag_ctx],)
+-
+-    # tag_diffuser.change(
+-    #     pfd_inference.action_load_diffuser,
+-    #     inputs = [tag_diffuser],
+-    #     outputs = [tag_diffuser],)
+-
+-    # tag_ctl.change(
+-    #     pfd_inference.action_load_ctl,
+-    #     inputs = [tag_ctl],
+-    #     outputs = [tag_ctl],)
+-
+-    button.click(
+-        pfd_inference.action_inference,
+-        inputs=[img_input, ctl_input, ctl_method, do_preprocess, 
+-                out_height, out_width, scl_lvl, seed, 
+-                tag_ctx, tag_diffuser, tag_ctl, ],
+-        outputs=[img_output])
+-    
+-    gr.Examples(
+-        label='Examples', 
+-        examples=get_example(), 
+-        fn=pfd_inference.action_inference,
+-        inputs=[img_input, ctl_input, ctl_method, do_preprocess,
+-                out_height, out_width, scl_lvl, seed, 
+-                tag_ctx, tag_diffuser, tag_ctl, ],
+-        outputs=[img_output],
+-        cache_examples=cache_examples,)
+-
+-#############
+-# Interface #
+-#############
++
+ 
+ if __name__ == "__main__":
++    os.environ['pfd_root']=""
++    pfd_inference = prompt_free_diffusion(
++        fp16=True, tag_ctx = 'SeeCoder', tag_diffuser = 'Deliberate-v2.0', tag_ctl = 'canny',)
++    cache_examples = True
++
++
++    def interface():
++        with gr.Row():
++            with gr.Column():
++                img_input = gr.Image(label='Image Input', type='pil', elem_id='customized_imbox')
++                with gr.Row():
++                    out_width  = gr.Slider(label="Width" , minimum=512, maximum=1536, value=512, step=64, visible=True)
++                    out_height = gr.Slider(label="Height", minimum=512, maximum=1536, value=512, step=64, visible=True)
++                with gr.Row():
++                    scl_lvl = gr.Slider(label="CFGScale", minimum=0, maximum=10, value=2, step=0.01, visible=True)
++                    seed = gr.Number(20, label="Seed", precision=0)
++                with gr.Row():
++                    tag_ctx = gr.Dropdown(label='Context Encoder', choices=[pi for pi in ctxencoder_path.keys()], value='SeeCoder')
++                    tag_diffuser = gr.Dropdown(label='Diffuser', choices=[pi for pi in diffuser_path.keys()], value='Deliberate-v2.0')
++                button = gr.Button("Run")
++            with gr.Column():
++                ctl_input = gr.Image(label='Control Input', type='pil', elem_id='customized_imbox')
++                do_preprocess = gr.Checkbox(label='Preprocess', value=False)
++                with gr.Row():
++                    ctl_method = gr.Dropdown(label='Preprocess Type', choices=preprocess_method, value='canny')
++                    tag_ctl    = gr.Dropdown(label='ControlNet',      choices=[pi for pi in controlnet_path.keys()], value='canny')
++            with gr.Column():
++                img_output = gr.Gallery(label="Image Result", elem_id='customized_imbox').style(grid=n_sample_image+1)
++
++        tag_ctl.change(
++            pfd_inference.action_autoset_method,
++            inputs = [tag_ctl],
++            outputs = [ctl_method],)
++
++        ctl_input.change(
++            pfd_inference.action_autoset_hw,
++            inputs = [ctl_input],
++            outputs = [out_height, out_width],)
++
++        # tag_ctx.change(
++        #     pfd_inference.action_load_ctx,
++        #     inputs = [tag_ctx],
++        #     outputs = [tag_ctx],)
++
++        # tag_diffuser.change(
++        #     pfd_inference.action_load_diffuser,
++        #     inputs = [tag_diffuser],
++        #     outputs = [tag_diffuser],)
++
++        # tag_ctl.change(
++        #     pfd_inference.action_load_ctl,
++        #     inputs = [tag_ctl],
++        #     outputs = [tag_ctl],)
++
++        button.click(
++            pfd_inference.action_inference,
++            inputs=[img_input, ctl_input, ctl_method, do_preprocess, 
++                    out_height, out_width, scl_lvl, seed, 
++                    tag_ctx, tag_diffuser, tag_ctl, ],
++            outputs=[img_output])
++        
++        gr.Examples(
++            label='Examples', 
++            examples=get_example(), 
++            fn=pfd_inference.action_inference,
++            inputs=[img_input, ctl_input, ctl_method, do_preprocess,
++                    out_height, out_width, scl_lvl, seed, 
++                    tag_ctx, tag_diffuser, tag_ctl, ],
++            outputs=[img_output],
++            cache_examples=cache_examples,)
++
++    #############
++    # Interface #
++    #############
++    
+     css = """
+         #customized_imbox {
+             min-height: 450px;
+diff --git a/lib/cfg_helper.py b/lib/cfg_helper.py
+index e549e35..0cf2126 100644
+--- a/lib/cfg_helper.py
++++ b/lib/cfg_helper.py
+@@ -18,7 +18,7 @@ from .model_zoo import get_model
+ # cfg_bank #
+ ############
+ 
+-def cfg_solvef(cmd, root):
++def cfg_solvef(cmd, root, rootdir=""):
+     if not isinstance(cmd, str):
+         return cmd
+     
+@@ -36,7 +36,7 @@ def cfg_solvef(cmd, root):
+                 zoom = zoom[pi]
+             except:
+                 return cmd
+-        return cfg_solvef(zoom, root)
++        return cfg_solvef(zoom, root,rootdir)
+ 
+     if cmd.find('SEARCH')==0:
+         zoom = root
+@@ -57,52 +57,53 @@ def cfg_solvef(cmd, root):
+                 break
+ 
+         if find:
+-            return cfg_solvef(zoom, root)
++            return cfg_solvef(zoom, root,rootdir)
+         else:
+             if isinstance(root, dict):
+                 for ri in root:
+-                    rv = cfg_solvef(cmd, root[ri])
++                    rv = cfg_solvef(cmd, root[ri],rootdir)
+                     if rv != cmd:
+                         return rv
+             if isinstance(root, list):
+                 for ri in root:
+-                    rv = cfg_solvef(cmd, ri)
++                    rv = cfg_solvef(cmd, ri,rootdir)
+                     if rv != cmd:
+                         return rv
+             return cmd
+ 
+     if cmd.find('MODEL')==0:
+         goto = cmd[len('MODEL'):].strip('()')
+-        return model_cfg_bank()(goto)
++        return model_cfg_bank(rootdir)(goto)
+ 
+     if cmd.find('DATASET')==0:
+         goto = cmd[len('DATASET'):].strip('()')
+-        return dataset_cfg_bank()(goto)
++        return dataset_cfg_bank(rootdir)(goto)
+ 
+     return cmd
+ 
+-def cfg_solve(cfg, cfg_root):
++def cfg_solve(cfg, cfg_root, rootdir=""):
+     # The function solve cfg element such that 
+     #   all sorrogate input are settled.
+     #   (i.e. SAME(***) ) 
+     if isinstance(cfg, list):
+         for i in range(len(cfg)):
+             if isinstance(cfg[i], (list, dict)):
+-                cfg[i] = cfg_solve(cfg[i], cfg_root)
++                cfg[i] = cfg_solve(cfg[i], cfg_root,rootdir)
+             else:
+-                cfg[i] = cfg_solvef(cfg[i], cfg_root)
++                cfg[i] = cfg_solvef(cfg[i], cfg_root,rootdir)
+     if isinstance(cfg, dict):
+         for k in cfg:
+             if isinstance(cfg[k], (list, dict)):
+-                cfg[k] = cfg_solve(cfg[k], cfg_root)
++                cfg[k] = cfg_solve(cfg[k], cfg_root,rootdir)
+             else:
+-                cfg[k] = cfg_solvef(cfg[k], cfg_root)        
++                cfg[k] = cfg_solvef(cfg[k], cfg_root,rootdir)        
+     return cfg
+ 
+ class model_cfg_bank(object):
+-    def __init__(self):
++    def __init__(self,rootpath=""):
+         self.cfg_dir = osp.join('configs', 'model')
+         self.cfg_bank = edict()
++        self.cfg_root_dir = rootpath
+     
+     def __call__(self, name):
+         if name not in self.cfg_bank:
+@@ -141,31 +142,31 @@ class model_cfg_bank(object):
+         for dargs in delete_args:
+             cfg.args.pop(dargs)
+ 
+-        cfg = cfg_solve(cfg, cfg)
++        cfg = cfg_solve(cfg, cfg, rootdir=self.cfg_root_dir)
+         self.cfg_bank[name] = cfg
+         return copy.deepcopy(cfg)
+ 
+     def get_yaml_path(self, name):
+         if name.find('openai_unet')==0:
+-            return osp.join(
++            return osp.join(self.cfg_root_dir,
+                 self.cfg_dir, 'openai_unet.yaml')
+         elif name.find('clip')==0:
+-            return osp.join(
++            return osp.join(self.cfg_root_dir,
+                 self.cfg_dir, 'clip.yaml')
+         elif name.find('autokl')==0:
+-            return osp.join(
++            return osp.join(self.cfg_root_dir,
+                 self.cfg_dir, 'autokl.yaml')
+         elif name.find('controlnet')==0:
+-            return osp.join(
++            return osp.join(self.cfg_root_dir,
+                 self.cfg_dir, 'controlnet.yaml')
+         elif name.find('swin')==0:
+-            return osp.join(
++            return osp.join(self.cfg_root_dir,
+                 self.cfg_dir, 'swin.yaml')
+         elif name.find('pfd')==0:
+-            return osp.join(
++            return osp.join(self.cfg_root_dir,
+                 self.cfg_dir, 'pfd.yaml')
+         elif name.find('seecoder')==0:
+-            return osp.join(
++            return osp.join(self.cfg_root_dir,
+                 self.cfg_dir, 'seecoder.yaml')
+         else:
+             raise ValueError
+-- 
+2.25.1
+
