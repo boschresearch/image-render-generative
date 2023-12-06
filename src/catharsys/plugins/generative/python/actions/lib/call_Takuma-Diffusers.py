@@ -200,7 +200,7 @@ for i, dicConfigListEntry in enumerate(lConfigs):
 
         if "mPreprocess" in dicControlNet:
             for sPreprocessor in dicControlNet["mPreprocess"]:
-                print(f"Procssing {sPreprocessor} on {sKey} ...")
+                print(f"Processing {sPreprocessor} on {sKey} ...")
                 if sPreprocessor == "Normalize":
                     fMin = np.min(xNImage)
                     fMax = np.max(xNImage)
