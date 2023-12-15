@@ -151,6 +151,7 @@ sd_datatype = torch.float32
 pipe = takuma.StableDiffusionMultiControlNetPipeline.from_pretrained(
     safety_checker=None, torch_dtype=sd_datatype, **mSDParameters
 ).to("cuda")
+pipe.enable_xformers_memory_efficient_attention()
 
 for sKey, dicNet in lConfigs[0]["mConfig"]["mControlNets"].items():
     dicControlNetParams = dicNet["mParams"]
@@ -241,6 +242,11 @@ for i, dicConfigListEntry in enumerate(lConfigs):
     iNumSteps = int(dicConfig.get("iNumSteps", 20))
     sPrompt = str(dicConfig.get("sPrompt"))
     sNegativePrompt = str(dicConfig.get("sNegativePrompt", ""))
+
+    print(f"iSeed: {iSeed}")
+    print(f"iNumSteps: {iNumSteps}")
+    print(f"sPrompt: {sPrompt}")
+    print(f"sNegativePrompt: {sNegativePrompt}")
 
     image = pipe(
         prompt=sPrompt,
