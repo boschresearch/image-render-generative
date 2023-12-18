@@ -1,5 +1,5 @@
 
-$ModelPath = './models'
+$ModelPath = "$PSScriptRoot/../models"
 if (-Not (Test-Path -Path $ModelPath)) {
     mkdir $ModelPath
 }

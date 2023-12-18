@@ -15,9 +15,6 @@ conda activate $EnvPath
 
 # install pytorch with cuda 11.8 support 
 pip3 install torch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 --index-url https://download.pytorch.org/whl/cu118
-# pip3 install -U xformers --index-url https://download.pytorch.org/whl/cu118
-pip3 install xformers==0.0.22.post4 --index-url https://download.pytorch.org/whl/cu118
-pip3 install opencv-python==4.6.0.66
 
 # download and install takuma's diffusers variant
 $ModelPath = './models'
@@ -38,7 +35,9 @@ cd Takuma-Diffusers
 git reset --hard 6bd8854cbb050e938349ce4730249aae3800fc50
 
 pip install -e .[torch]
-pip install transformers
+pip3 install xformers==0.0.22.post4 --index-url https://download.pytorch.org/whl/cu118
+pip3 install transformers
+pip3 install opencv-python==4.6.0.66
 
 cd ..
 
@@ -46,9 +45,9 @@ cd ..
 # this will download lots of files, you might want to delete
 # the .git folder afterwards in each repository
 
-$PSScriptRoot/"get_sd.ps1"
-$PSScriptRoot/"get_sd_depth.ps1"
-$PSScriptRoot/"get_sd_openpose.ps1"
-$PSScriptRoot/"get_sd_semseg.ps1"
+& $PSScriptRoot/"get_sd.ps1"
+& $PSScriptRoot/"get_sd_depth.ps1"
+& $PSScriptRoot/"get_sd_openpose.ps1"
+& $PSScriptRoot/"get_sd_semseg.ps1"
 
 cd ..
