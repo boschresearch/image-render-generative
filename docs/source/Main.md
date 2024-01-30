@@ -1,4 +1,21 @@
-# Generate AI Action
+<!---
+<LICENSE id="CC BY-SA 4.0">
+    
+    Image-Render Automation Functions module documentation
+    Copyright 2022 Robert Bosch GmbH and its subsidiaries
+    
+    This work is licensed under the 
+    
+        Creative Commons Attribution-ShareAlike 4.0 International License.
+    
+    To view a copy of this license, visit 
+        http://creativecommons.org/licenses/by-sa/4.0/ 
+    or send a letter to 
+        Creative Commons, PO Box 1866, Mountain View, CA 94042, USA.
+    
+</LICENSE>
+--->
+# Generative AI Action
 
 ## Overview
 
@@ -30,6 +47,12 @@ To setup the conda environment, download and install the repository
 and download all the needed model files, simply call
 
     bash scripts/get_takuma_diffusers.sh
+
+Under Windows you can use the PowerShell script 
+
+    ./scripts/get_takuma_diffusers.ps1
+
+Note that the PowerShell script contains specific version numbers of the various modules that are needed to make everything work.
 
 This also downloads additional networks into the ./models folder with
 git lfs. Make sure git lfs is available before calling the script.
