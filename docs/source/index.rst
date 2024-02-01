@@ -11,8 +11,10 @@ Generative AI Action
    :caption: Contents:
    
    Main
+   license
+   back-to-main
 
-`main <../../html/index.html>`__
+.. `main <../../html/index.html>`__
 
 .. Indices and tables
 .. ==================
