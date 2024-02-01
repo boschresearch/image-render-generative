@@ -42,7 +42,7 @@ pathDocsSrcMain = pathSetup / "docs" / "source"
 
 # -- Project information -----------------------------------------------------
 
-project = "Template Python Actions"
+project = "Generative AI Action"
 copyright = "2022, Robert Bosch GmbH"
 author = "Christian Perwass"
 
