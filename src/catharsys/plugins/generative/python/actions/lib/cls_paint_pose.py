@@ -111,6 +111,8 @@ class CPaintPose:
         # Can use these flags to enable/disable processing and image overwrite
         self.bDoProcess = self.bDoProcess and (self.iDoProcess != 0)
         self.bDoOverwrite = self.bDoOverwrite and (self.iDoOverwrite != 0)
+        # Flag to use the anyhumanV4 compatibility mapping
+        bAnyhumanV4 = _dicCfg.get("bAnyhumanV4", False)
 
         ##################################################################################
         # Extract the generative configuration data from the whole config.
@@ -198,7 +200,7 @@ class CPaintPose:
 
                                     dictBoneCoords = CPaintPose._getBonePositions(dictBones)
 
-                                    CPaintPose._DrawOnLayers(lLayers, dictBoneCoords, height, width)
+                                    CPaintPose._DrawOnLayers(lLayers, dictBoneCoords, height, width, bAnyhumanV4)
                                 # endfor
                             # endif
                         # endfor
@@ -215,7 +217,6 @@ class CPaintPose:
 
     # enddef Process()
 
-
     def _InitImageLayers(lLayers, height, width):
         for mLayer in lLayers:
             image = mLayer.get("__image__", np.zeros((height, width, 3)))
@@ -223,8 +224,30 @@ class CPaintPose:
         # endfor
     # enddef
 
+    def _DrawOnLayers(lLayers, dictBoneCoords, height, width, bAnyhumanV4=False):
+        anyhuman_v4_mapping = {
+            "AT.Label;Std;Neck": "spine.003",
+            "AT.Label;Std;Right_Shoulder": "upper_arm.R",
+            "AT.Label;Std;Left_Shoulder": "upper_arm.L",
+            "AT.Label;Std;Right_Elbow": "forearm.R",
+            "AT.Label;Std;Left_Elbow": "forearm.L",
+            "AT.Label;Std;Right_Wrist": "AT.Label;OpenPose;R_Hand_0_V1",
+            "AT.Label;Std;Left_Wrist": "AT.Label;OpenPose;L_Hand_0_V1",
+            "AT.Label;Std;Right_Hip": "thigh.R",
+            "AT.Label;Std;Left_Hip": "thigh.L",
+            "AT.Label;Std;Right_Knee": "shin.R",
+            "AT.Label;Std;Left_Knee": "shin.L",
+            "AT.Label;Std;Right_Ankle": "foot.R",
+            "AT.Label;Std;Left_Ankle": "foot.L",
+            "AT.Label;Std;Nose": "AT.Label;WFLW;WFLW_54_V1",
+            "AT.Label;Std;Right_Eye": "AT.Label;WFLW;WFLW_66_V1",
+            "AT.Label;Std;Left_Eye": "AT.Label;WFLW;WFLW_97_V1",
+            "AT.Label;Std;Left_Ear": "AT.Label;IMS;LEFT_EAR_INTERTRAGIC_NOTCH_BOSCH_V1",
+            "AT.Label;Std;Right_Ear": "AT.Label;IMS;RIGHT_EAR_INTERTRAGIC_NOTCH_BOSCH_V1",
+            "AT.Label;Std;Right_Shoulder": "upper_arm.R",
+            "AT.Label;Std;Left_Shoulder": "upper_arm.L",
+        }
 
-    def _DrawOnLayers(lLayers, dictBoneCoords, height, width):
         for mLayer in lLayers:
             image = mLayer["__image__"]
 
@@ -234,6 +257,7 @@ class CPaintPose:
             for dictLine in lLines:
                 sP1 = dictLine["sP1"]
                 sP2 = dictLine["sP2"]
+
                 lColor = dictLine["lColor"][::-1]
 
                 bP1UseTail = dictLine.get("bP1UseTail", False)
@@ -246,6 +270,10 @@ class CPaintPose:
                 if bP2UseTail:
                     sP2 += "_tail"
                 # endif
+
+                if bAnyhumanV4:
+                    sP1 = anyhuman_v4_mapping.get(sP1, sP1)
+                    sP2 = anyhuman_v4_mapping.get(sP2, sP2)
 
                 xyP1 = dictBoneCoords[sP1]
                 xyP2 = dictBoneCoords[sP2]
@@ -274,6 +302,8 @@ class CPaintPose:
 
             for dictPoint in lPoints:
                 sP = dictPoint["sP"]
+                if bAnyhumanV4:
+                    sP = anyhuman_v4_mapping.get(sP, sP)
                 bPUseTail = dictPoint.get("bPUseTail", False)
                 if bPUseTail:
                     sP += "_tail"
