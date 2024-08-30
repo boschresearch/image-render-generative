@@ -8,15 +8,18 @@ conda create --prefix ./envs/Takuma-Diffusers pip
 conda activate ./envs/Takuma-Diffusers
 
 # install pytorch. See also https://pytorch.org/get-started/locally/
-pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+python -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 
-pip install transformers 
+python -m pip install transformers 
 # ensure that CUDA >= 11.7.0 is installed before installing xformers
 # The pip install of xformers can take ages (> 1h)
-pip install xformers
+python -m pip install xformers
 
 # this is the conda install method
 # conda install xformers -c xformers
+
+# install opencv
+python -m pip install opencv-python
 
 # download and install takuma's diffusers variant
 mkdir ./models
@@ -25,7 +28,7 @@ cd ./models/
 git clone https://github.com/takuma104/diffusers.git Takuma-Diffusers -b multi_controlnet
 cd Takuma-Diffusers
 git reset --hard 6bd8854cbb050e938349ce4730249aae3800fc50
-pip install -e .[torch]
+python -m pip install -e .[torch]
 cd ..
 
 # call to download stable diffusion and control net networks
